@@ -25,9 +25,14 @@ class ProjectController
      * @param Request $request
      * 
      * @Route("/project/{id}", name="project", method="GET")
+     *
+     * @throws Model\NotFoundException
+     * @throws Throwable
      */
     public function projectAction(Request $request)
     {
+        // We dont want to use try here, and throw exceptions
+        // Need to create custom Exception handler, that will wrap all the exceptions into new Response()
         try {
             $project = $this->storage->getProjectById($request->get('id'));
 
@@ -46,12 +51,15 @@ class ProjectController
      */
     public function projectTaskPagerAction(Request $request)
     {
+        // It would be good idea to use DTOs, like getTasksDto() with getters and setters, validation rules
         $tasks = $this->storage->getTasksByProjectId(
             $request->get('id'),
             $request->get('limit'),
             $request->get('offset')
         );
 
+        // In Project model we have method toJson(), so it would be good to add it for all models,
+        // using some ModelInterface, where will be declared toJson() method
         return new Response(json_encode($tasks));
     }
 
@@ -63,10 +71,18 @@ class ProjectController
     public function projectCreateTaskAction(Request $request)
     {
 		$project = $this->storage->getProjectById($request->get('id'));
-		if (!$project) {
+		// Need to create custom Exception handler, that will wrap all the exceptions into new Response()
+        // In case we want to throw exception for null result,
+        // it will be good to have method in storage like getProjectByIdOrFail()
+        // and getProjectById() will return Project or null
+        if (!$project) {
+            //Why we have different type of responses? Need to unify, always use Response, or JsonResponse,
+            // or something else
 			return new JsonResponse(['error' => 'Not found']);
 		}
-		
+
+        // We dont want to use $_REQUEST, we use Request $request, but, it would be good to use DTOs,
+        // like createTaskDto(), with its getters and setters, and validation rules
 		return new JsonResponse(
 			$this->storage->createTask($_REQUEST, $project->getId())
 		);
